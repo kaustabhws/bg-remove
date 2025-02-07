@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, send_file
 import cv2
 import numpy as np
@@ -42,15 +43,13 @@ def remove_background():
     probability = np.expand_dims(probability, axis=-1)
 
     alpha_image = np.insert(image, 3, 255.0, axis=2)
-    masked_image = np.where(probability > PROBABILITY_THRESHOLD, alpha_image, 0.0)
+    masked_image = np.where(probability > PROBABILITY_THRESHOLD, alpha_image, 0.0).astype(np.uint8)
 
     # Save output to a BytesIO object
-    output_buffer = BytesIO()
-    cv2.imwrite(output_buffer, masked_image, format='PNG')
-    output_buffer.seek(0)
+    success, buffer = cv2.imencode('.png', masked_image)
+    if not success:
+        return "Failed to encode image", 500
+    output_buffer = BytesIO(buffer)
 
     return send_file(output_buffer, mimetype='image/png')
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
